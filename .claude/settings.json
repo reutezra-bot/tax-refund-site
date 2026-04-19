@@ -5,7 +5,8 @@
       "Bash(npx tsc *)",
       "Bash(npm install *)",
       "Bash(mkdir -p \"c:\\\\Users\\\\Lenovo\\\\OneDrive - Prodify Software\\\\שולחן העבודה\\\\רעות\\\\projects\\\\tax-refund-site\\\\app\\\\check\\\\case\\\\[year]\\\\upload\")",
-      "Bash(mkdir -p \"c:\\\\Users\\\\Lenovo\\\\OneDrive - Prodify Software\\\\שולחן העבודה\\\\רעות\\\\projects\\\\tax-refund-site\\\\app\\\\check\\\\case\\\\[year]\\\\questions\")"
+      "Bash(mkdir -p \"c:\\\\Users\\\\Lenovo\\\\OneDrive - Prodify Software\\\\שולחן העבודה\\\\רעות\\\\projects\\\\tax-refund-site\\\\app\\\\check\\\\case\\\\[year]\\\\questions\")",
+      "Bash(node -e \"require\\('resend'\\)\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\Lenovo\\.claude\\projects\\c--Users-Lenovo-OneDrive---Prodify-Software-------------------projects-tax-refund-site\\memory"

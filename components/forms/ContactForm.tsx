@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useCheckSession } from '@/lib/check-session';
 import { submitLead } from '@/lib/actions';
 import { validateContactForm } from '@/lib/validators';
@@ -10,8 +9,7 @@ import Button from '@/components/ui/Button';
 import Link from 'next/link';
 
 export default function ContactForm() {
-  const router = useRouter();
-  const { caseData, reset } = useCheckSession();
+  const { caseData } = useCheckSession();
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -23,6 +21,7 @@ export default function ContactForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +55,7 @@ export default function ContactForm() {
       email,
       notes,
       initialResult: caseData.result.type,
+      refundRange: caseData.result.refundRange,
       uploadedDocuments: allDocs,
     });
     setLoading(false);
@@ -65,9 +65,32 @@ export default function ContactForm() {
       return;
     }
 
-    reset();
-    router.push('/thank-you');
+    // Show success inline — do NOT reset or navigate, as that would trigger
+    // the contact page's useEffect to redirect back mid-flow.
+    setSubmitted(true);
   };
+
+  if (submitted) {
+    return (
+      <div className="text-center py-8 space-y-5">
+        <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
+          <svg className="w-7 h-7 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-slate-900 mb-2">הפרטים נשלחו בהצלחה</h2>
+          <p className="text-slate-600 text-base">נחזור אליך בהקדם.</p>
+        </div>
+        <Link
+          href="/"
+          className="inline-block mt-4 text-sm text-blue-700 underline underline-offset-2 hover:text-blue-900"
+        >
+          חזרה לדף הבית
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
