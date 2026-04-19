@@ -1,0 +1,231 @@
+import Anthropic from '@anthropic-ai/sdk';
+import type { Form106ExtractedData } from '@/lib/form106-parser';
+
+const EXTRACTION_PROMPT = `You are a precise data extraction system for Israeli tax forms.
+
+The attached document is a Form 106 (טופס 106) — the annual Israeli employer tax withholding certificate.
+Extract the following fields and return them as a single JSON object. Use null for any field that is not clearly present or readable in the document.
+
+REQUIRED fields:
+- taxYear: number — the tax year (e.g. 2023)
+- annualTaxableIncome: number — field 158 "הכנסה חייבת" — total annual taxable income in ILS
+- actualTaxWithheld: number — field 42 "מס הכנסה שנוכה" — total income tax withheld in ILS
+- annualTaxCreditPoints: number — "נקודות זיכוי" — annual credit points (e.g. 2.25, 2.75, 3.0)
+- workDays: number — "ימי עבודה" — number of work days in the year
+- employeeId: string — "ת.ז." — employee ID number
+- employerName: string — "שם המעסיק" — employer name
+- priorYearDifferencesIncluded: boolean — true if the form includes retroactive differences from prior years (הפרשים לשנים קודמות)
+- priorYearDifferencesAmount: number or null — the amount of such differences if present
+
+OPTIONAL supporting fields (null if not visible):
+- section45ACredit: number — "זיכוי לפי סעיף 45א"
+- lifeInsuranceDeduction: number — "ניכוי ביטוח חיים"
+- pensionContributionsEmployee: number — "ניכוי קצבה/פנסיה — חלק עובד"
+- providentFundContributionsEmployee: number — "ניכוי קרן השתלמות — עובד"
+- trainingFundEmployee: number — employee training fund contribution
+- trainingFundEmployer: number — employer training fund contribution
+- pensionableSalary: number — "שכר פנסיוני"
+- nationalInsuranceIncome: number — "הכנסה חייבת בדמי ביטוח לאומי"
+- nationalInsuranceDeduction: number — "ניכוי ביטוח לאומי"
+- healthInsuranceDeduction: number — "ניכוי ביטוח בריאות"
+- memberFees: number — "דמי חבר"
+- overtimeIncome: number — "שכר נוסף / שעות נוספות"
+- vehicleUsageValue: number — "שווי שימוש ברכב"
+- taxFileNumber: string — "מספר תיק ניכויים"
+
+RULES:
+1. Return ONLY the JSON object — no explanatory text before or after.
+2. All monetary values must be plain numbers (no commas, no currency symbols).
+3. If a field is ambiguous or unclear, use null rather than guessing.
+4. taxYear must be a 4-digit year between 2015 and 2030.
+5. annualTaxableIncome and actualTaxWithheld are the two most critical fields — extract them with highest care.
+
+Return format (example):
+{
+  "taxYear": 2023,
+  "annualTaxableIncome": 156000,
+  "actualTaxWithheld": 18200,
+  "annualTaxCreditPoints": 2.25,
+  "workDays": 248,
+  "employeeId": "123456789",
+  "employerName": "חברת טכנולוגיה בע\"מ",
+  "priorYearDifferencesIncluded": false,
+  "priorYearDifferencesAmount": null,
+  "section45ACredit": null,
+  "lifeInsuranceDeduction": null,
+  "pensionContributionsEmployee": 9360,
+  "providentFundContributionsEmployee": null,
+  "trainingFundEmployee": 3900,
+  "trainingFundEmployer": 11700,
+  "pensionableSalary": null,
+  "nationalInsuranceIncome": null,
+  "nationalInsuranceDeduction": 6084,
+  "healthInsuranceDeduction": 4836,
+  "memberFees": null,
+  "overtimeIncome": null,
+  "vehicleUsageValue": null,
+  "taxFileNumber": null
+}`;
+
+type MediaType = 'application/pdf' | 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+
+function toMediaType(fileType: string): MediaType | null {
+  const map: Record<string, MediaType> = {
+    'application/pdf': 'application/pdf',
+    'image/jpeg': 'image/jpeg',
+    'image/jpg': 'image/jpeg',
+    'image/png': 'image/png',
+    'image/gif': 'image/gif',
+    'image/webp': 'image/webp',
+  };
+  return map[fileType.toLowerCase()] ?? null;
+}
+
+export interface ExtractionSuccess {
+  ok: true;
+  data: Form106ExtractedData;
+}
+export interface ExtractionFailure {
+  ok: false;
+  reason: string;
+}
+export type ExtractionOutcome = ExtractionSuccess | ExtractionFailure;
+
+export async function extractForm106WithAI(
+  fileBase64: string,
+  fileType: string,
+  fileName: string,
+): Promise<ExtractionOutcome> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return { ok: false, reason: 'ANTHROPIC_API_KEY not configured' };
+  }
+
+  const mediaType = toMediaType(fileType);
+  if (!mediaType) {
+    return { ok: false, reason: `Unsupported file type: ${fileType}` };
+  }
+
+  const client = new Anthropic({ apiKey });
+
+  let content: Anthropic.MessageParam['content'];
+
+  if (mediaType === 'application/pdf') {
+    content = [
+      {
+        type: 'document',
+        source: { type: 'base64', media_type: 'application/pdf', data: fileBase64 },
+      } as Anthropic.DocumentBlockParam,
+      { type: 'text', text: EXTRACTION_PROMPT },
+    ];
+  } else {
+    content = [
+      {
+        type: 'image',
+        source: { type: 'base64', media_type: mediaType, data: fileBase64 },
+      } as Anthropic.ImageBlockParam,
+      { type: 'text', text: EXTRACTION_PROMPT },
+    ];
+  }
+
+  let raw: string;
+  try {
+    const message = await client.messages.create({
+      model: 'claude-opus-4-7',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content }],
+    });
+    const block = message.content[0];
+    if (block.type !== 'text') {
+      return { ok: false, reason: 'Unexpected response type from Claude' };
+    }
+    raw = block.text.trim();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, reason: `Claude API error: ${msg}` };
+  }
+
+  // Strip markdown code fences if Claude wrapped the JSON
+  const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const jsonString = jsonMatch ? jsonMatch[1].trim() : raw;
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(jsonString);
+  } catch {
+    return { ok: false, reason: 'Could not parse JSON from Claude response' };
+  }
+
+  const warnings: string[] = [];
+
+  const n = (key: string): number | null => {
+    const v = parsed[key];
+    if (v === null || v === undefined) return null;
+    const num = typeof v === 'number' ? v : parseFloat(String(v).replace(/,/g, ''));
+    return isFinite(num) ? num : null;
+  };
+
+  const s = (key: string): string | null => {
+    const v = parsed[key];
+    return v != null && String(v).trim() !== '' ? String(v).trim() : null;
+  };
+
+  const b = (key: string): boolean | null => {
+    const v = parsed[key];
+    if (v === null || v === undefined) return null;
+    if (typeof v === 'boolean') return v;
+    if (v === 1 || v === '1' || v === 'true') return true;
+    if (v === 0 || v === '0' || v === 'false') return false;
+    return null;
+  };
+
+  const taxYear = n('taxYear');
+  const annualTaxableIncome = n('annualTaxableIncome');
+  const actualTaxWithheld = n('actualTaxWithheld');
+
+  if (!taxYear || taxYear < 2015 || taxYear > 2030) {
+    warnings.push('שנת המס לא זוהתה בטופס — אנא ודא את פרטי הטופס');
+  }
+  if (annualTaxableIncome === null) {
+    warnings.push('שדה ההכנסה החייבת (158) לא חולץ בצורה ברורה מהטופס');
+  }
+  if (actualTaxWithheld === null) {
+    warnings.push('שדה מס הכנסה שנוכה (42) לא חולץ בצורה ברורה מהטופס');
+  }
+
+  const criticalFieldCount = [taxYear, annualTaxableIncome, actualTaxWithheld].filter(
+    (v) => v !== null,
+  ).length;
+  const extractionConfidence = criticalFieldCount === 3 ? 0.9 : criticalFieldCount === 2 ? 0.65 : 0.35;
+
+  const data: Form106ExtractedData = {
+    taxYear: taxYear && taxYear >= 2015 && taxYear <= 2030 ? taxYear : null,
+    annualTaxableIncome,
+    actualTaxWithheld,
+    annualTaxCreditPoints: n('annualTaxCreditPoints'),
+    workDays: n('workDays') !== null ? Math.round(n('workDays')!) : null,
+    employeeId: s('employeeId'),
+    employerName: s('employerName'),
+    priorYearDifferencesIncluded: b('priorYearDifferencesIncluded'),
+    priorYearDifferencesAmount: n('priorYearDifferencesAmount'),
+    extractionConfidence,
+    section45ACredit: n('section45ACredit'),
+    lifeInsuranceDeduction: n('lifeInsuranceDeduction'),
+    pensionContributionsEmployee: n('pensionContributionsEmployee'),
+    providentFundContributionsEmployee: n('providentFundContributionsEmployee'),
+    trainingFundEmployee: n('trainingFundEmployee'),
+    trainingFundEmployer: n('trainingFundEmployer'),
+    pensionableSalary: n('pensionableSalary'),
+    nationalInsuranceIncome: n('nationalInsuranceIncome'),
+    nationalInsuranceDeduction: n('nationalInsuranceDeduction'),
+    healthInsuranceDeduction: n('healthInsuranceDeduction'),
+    memberFees: n('memberFees'),
+    overtimeIncome: n('overtimeIncome'),
+    vehicleUsageValue: n('vehicleUsageValue'),
+    taxFileNumber: s('taxFileNumber'),
+    rawTextSummary: `Extracted from ${fileName} via Claude API`,
+    extractionWarnings: warnings,
+  };
+
+  return { ok: true, data };
+}
