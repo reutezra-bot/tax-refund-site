@@ -18,4 +18,6 @@ export interface UploadedDocument {
   extracting?: boolean;
   /** Error message if extraction failed. */
   extractionError?: string;
+  /** Raw file content as base64 — used to attach the file to the lead notification email. */
+  fileBase64?: string;
 }

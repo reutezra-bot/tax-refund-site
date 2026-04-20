@@ -62,20 +62,29 @@ export default function UploadDropzone({ documents, sessionId, onChange }: Uploa
       await Promise.all(
         files.map(async (file, i) => {
           const placeholder = placeholders[i];
-          const result = await extractFromFile(file);
+          const [result, fileBase64] = await Promise.all([
+            extractFromFile(file),
+            file.arrayBuffer().then((buf) => {
+              const bytes = new Uint8Array(buf);
+              let binary = '';
+              for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+              return btoa(binary);
+            }),
+          ]);
 
           const idx = working.findIndex((d) => d.id === placeholder.id);
           if (idx === -1) return;
 
           working = [...working];
           if ('error' in result) {
-            working[idx] = { ...placeholder, extracting: false, extractionError: result.error };
+            working[idx] = { ...placeholder, extracting: false, extractionError: result.error, fileBase64 };
           } else {
             working[idx] = {
               ...placeholder,
               extracting: false,
               form106Data: result.data,
               detectedYear: result.data.taxYear ?? placeholder.detectedYear,
+              fileBase64,
             };
           }
           onChange(working);

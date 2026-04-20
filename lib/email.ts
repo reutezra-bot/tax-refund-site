@@ -18,14 +18,21 @@ const REFUND_RANGE_LABELS: Record<RefundRange, string> = {
 export async function sendLeadNotification(
   lead: Lead,
   refundRange?: RefundRange,
-): Promise<{ success: boolean }> {
+): Promise<{ success: boolean; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.warn('[email] RESEND_API_KEY not set — email not sent. Lead:', lead.id);
-    return { success: false };
+    return { success: false, error: 'RESEND_API_KEY not set' };
   }
 
   const resend = new Resend(apiKey);
+
+  const attachments = (lead.uploadedDocuments ?? [])
+    .filter((doc) => doc.fileBase64)
+    .map((doc) => ({
+      filename: doc.fileName,
+      content: Buffer.from(doc.fileBase64!, 'base64'),
+    }));
 
   const { error } = await resend.emails.send({
     from: FROM_EMAIL,
@@ -33,13 +40,15 @@ export async function sendLeadNotification(
     replyTo: lead.email,
     subject: `ליד חדש — ${lead.fullName} | בדיקת החזר מס`,
     html: buildEmailHtml(lead, refundRange),
+    attachments,
   });
 
   if (error) {
-    console.error('[email] Resend error:', error);
-    return { success: false };
+    console.error('[email] Resend error (name=%s message=%s)', error.name, error.message, error);
+    return { success: false, error: error.message };
   }
 
+  console.log('[email] Sent OK to', INTERNAL_EMAIL);
   return { success: true };
 }
 

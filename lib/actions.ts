@@ -29,7 +29,10 @@ export async function submitLead(
       uploadedDocuments: input.uploadedDocuments,
     });
 
-    await sendLeadNotification(lead, input.refundRange);
+    const emailResult = await sendLeadNotification(lead, input.refundRange);
+    if (!emailResult.success) {
+      console.error('[submitLead] email failed:', emailResult);
+    }
 
     return { success: true, leadId: lead.id };
   } catch (err) {
