@@ -34,11 +34,13 @@ export async function sendLeadNotification(
       content: Buffer.from(doc.fileBase64!, 'base64'),
     }));
 
+  const debugSubject = `ליד חדש — ${lead.fullName} | בדיקת החזר מס [קבצים: ${attachments.length}/${(lead.uploadedDocuments ?? []).length}]`;
+
   const { error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: INTERNAL_EMAIL,
     replyTo: lead.email,
-    subject: `ליד חדש — ${lead.fullName} | בדיקת החזר מס`,
+    subject: debugSubject,
     html: buildEmailHtml(lead, refundRange),
     attachments,
   });
