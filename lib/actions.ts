@@ -29,6 +29,12 @@ export async function submitLead(
       uploadedDocuments: input.uploadedDocuments,
     });
 
+    console.log('[submitLead] docs received:', input.uploadedDocuments.map(d => ({
+      name: d.fileName,
+      hasBase64: !!d.fileBase64,
+      base64Len: d.fileBase64?.length ?? 0,
+    })));
+
     const emailResult = await sendLeadNotification(lead, input.refundRange);
     if (!emailResult.success) {
       console.error('[submitLead] email failed:', emailResult);
