@@ -19,7 +19,7 @@ const OUTCOME: Record<
   { title: string; body: string; disclaimer: string; positive: boolean; review?: boolean }
 > = {
   no_clear_indication: {
-    title: 'לא זוהתה כרגע אינדיקציה ברורה להחזר מס',
+    title: 'לא זוהתה כרגע אינדיקציה ברורה להחזר debug מס',
     body: 'לפי הפרטים והמסמכים שצירפת, בשלב זה לא זוהתה אינדיקציה ברורה לזכאות להחזר מס. חשוב לוודא שכל המידע הרלוונטי הוזן — תרומות, ביטוח חיים, מילואים, חל"ת, חופשת לידה ומעסיקים נוספים.',
     disclaimer: 'מדובר בהערכה ראשונית בלבד, ולא בבדיקה סופית או ייעוץ מס.',
     positive: false,
