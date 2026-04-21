@@ -61,21 +61,33 @@ function AnnualSummaryRow({ summary }: { summary: AnnualResult }) {
   const hasRange = summary.type === 'potential_refund' && summary.refundRange;
 
   return (
-    <div className="flex items-center justify-between gap-3 py-3 border-b border-slate-100 last:border-0">
-      <p className="text-sm font-semibold text-slate-800">שנת מס {summary.year}</p>
-      {hasRange ? (
-        <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-          {RANGE_LABELS[summary.refundRange!]}
-        </span>
-      ) : summary.type === 'potential_refund' ? (
-        <span className="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-          אינדיקציה חיובית
-        </span>
-      ) : summary.type === 'needs_review' ? (
-        <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-          נדרשת בדיקה
-        </span>
-      ) : null}
+    <div className="py-3 border-b border-slate-100 last:border-0">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold text-slate-800">שנת מס {summary.year}</p>
+        {hasRange ? (
+          <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
+            {RANGE_LABELS[summary.refundRange!]}
+          </span>
+        ) : summary.type === 'potential_refund' ? (
+          <span className="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
+            אינדיקציה חיובית
+          </span>
+        ) : summary.type === 'needs_review' ? (
+          <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full shrink-0">
+            נדרשת בדיקה
+          </span>
+        ) : null}
+      </div>
+      {summary.reasons.length > 0 && (
+        <ul className="mt-2 space-y-1">
+          {summary.reasons.map((reason, i) => (
+            <li key={i} className="flex gap-1.5 text-xs text-slate-500">
+              <span className="shrink-0 mt-0.5">•</span>
+              <span>{reason}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -127,7 +139,21 @@ export default function CaseResultCard({ result }: Props) {
         </div>
       </div>
 
-      {/* Missing data — shown for needs_review */}
+      {/* Estimated refund amount — shown when available, including needs_review with donation credit */}
+      {result.estimatedRefundAmountILS && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-3">
+          <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
+          </svg>
+          <p className="text-sm text-emerald-800">
+            <span className="font-semibold">אומדן ראשוני:</span>{' '}
+            כ-{result.estimatedRefundAmountILS.toLocaleString('he-IL')} ₪
+            <span className="text-xs text-emerald-600 mr-1">(הערכה ראשונית בלבד)</span>
+          </p>
+        </div>
+      )}
+
+      {/* Missing data */}
       {result.missingData.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 space-y-1">
           <p className="text-xs font-semibold text-amber-800 mb-1">מידע שעשוי לשפר את הדיוק:</p>
@@ -140,10 +166,12 @@ export default function CaseResultCard({ result }: Props) {
         </div>
       )}
 
-      {/* Per-year breakdown */}
-      {result.yearlySummaries.length > 1 && (
+      {/* Per-year breakdown — always shown when there are summaries with reasons */}
+      {result.yearlySummaries.length > 0 && result.yearlySummaries.some((s) => s.reasons.length > 0) && (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <p className="text-sm font-semibold text-slate-700 mb-1">פירוט לפי שנה</p>
+          <p className="text-sm font-semibold text-slate-700 mb-1">
+            {result.yearlySummaries.length > 1 ? 'פירוט לפי שנה' : `פירוט — שנת מס ${result.yearlySummaries[0].year}`}
+          </p>
           <div>
             {result.yearlySummaries.map((s) => (
               <AnnualSummaryRow key={s.year} summary={s} />
