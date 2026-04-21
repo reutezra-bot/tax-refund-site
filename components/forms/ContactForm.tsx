@@ -48,6 +48,13 @@ export default function ContactForm() {
 
     const allDocs = caseData.years.flatMap((u) => u.documents);
 
+    // Strip fileBase64 from years.documents to avoid sending files twice.
+    // The actual file bytes are already in uploadedDocuments.
+    const yearsWithoutFiles = caseData.years.map((u) => ({
+      ...u,
+      documents: u.documents.map(({ fileBase64: _omit, ...rest }) => rest),
+    }));
+
     setLoading(true);
     const response = await submitLead({
       fullName,
@@ -57,7 +64,7 @@ export default function ContactForm() {
       initialResult: caseData.result.type,
       refundRange: caseData.result.refundRange,
       uploadedDocuments: allDocs,
-      years: caseData.years,
+      years: yearsWithoutFiles,
     });
     setLoading(false);
 
