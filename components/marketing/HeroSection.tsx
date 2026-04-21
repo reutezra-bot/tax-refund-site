@@ -35,7 +35,7 @@ export default function HeroSection() {
 </p>
 
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-8">
+            <div className="mt-8 flex flex-col sm:flex-row gap-3 mb-8">
               <Link
                 href="/check"
                 className="inline-flex items-center justify-center gap-2 bg-white text-blue-900 font-bold text-base sm:text-lg px-7 py-3.5 rounded-xl shadow-lg hover:shadow-xl hover:bg-blue-50 active:bg-blue-100 transition-all"
