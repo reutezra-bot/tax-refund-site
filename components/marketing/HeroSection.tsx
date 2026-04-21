@@ -21,21 +21,18 @@ export default function HeroSection() {
 
             {/* Headline — refined hierarchy */}
             <h1 className="mb-5">
-              <span className="block text-blue-200 text-lg sm:text-xl font-light leading-snug mb-1">
-                שכירים בישראל?
-              </span>
-              <span className="block text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight text-white">
-                בדקו אם ייתכן שמגיע לכם
-              </span>
-              <span className="block text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight text-sky-300 mt-0.5">
-                החזר מס
-              </span>
-            </h1>
+  <span className="block text-blue-200 text-lg sm:text-xl font-light leading-snug mb-1">
+    שכירים בישראל?
+  </span>
+  <span className="block text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight text-white">
+    בדיקת זכאות ל<span className="text-sky-300">החזר מס</span>
+  </span>
+</h1>
+      
 
-            <p className="text-base sm:text-lg text-blue-100/80 leading-relaxed mb-8 max-w-xl font-light">
-              מעלים טופס 106, עונים על כמה שאלות קצרות, ומקבלים תשובה ראשונית תוך דקות.
-              אם תימצא אינדיקציה, נחזור אליכם להמשך בדיקה.
-            </p>
+        <p className="text-lg text-blue-100 leading-relaxed max-w-2xl">
+  מעלים טופס 106, עונים על כמה שאלות קצרות, ומקבלים בדיקה ראשונית מהירה אם ייתכן שמגיע לכם החזר מס.
+</p>
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-3 mb-8">
