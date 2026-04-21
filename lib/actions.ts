@@ -4,7 +4,12 @@ import { createLead } from '@/lib/mock-data';
 import { sendLeadNotification } from '@/lib/email';
 import type { UploadedDocument } from '@/types/documents';
 import type { InitialResultType } from '@/types/lead';
-import type { RefundRange, TaxYearUnit } from '@/types/case';
+import type { RefundRange, YearAnswers } from '@/types/case';
+
+interface YearAnswerEntry {
+  year: number;
+  answers: YearAnswers | null;
+}
 
 interface SubmitLeadInput {
   fullName: string;
@@ -14,7 +19,7 @@ interface SubmitLeadInput {
   initialResult: InitialResultType;
   refundRange?: RefundRange;
   uploadedDocuments: UploadedDocument[];
-  years: TaxYearUnit[];
+  yearAnswers: YearAnswerEntry[];
 }
 
 export async function submitLead(
@@ -30,13 +35,7 @@ export async function submitLead(
       uploadedDocuments: input.uploadedDocuments,
     });
 
-    console.log('[submitLead] docs received:', input.uploadedDocuments.map(d => ({
-      name: d.fileName,
-      hasBase64: !!d.fileBase64,
-      base64Len: d.fileBase64?.length ?? 0,
-    })));
-
-    const emailResult = await sendLeadNotification(lead, input.refundRange, input.years);
+    const emailResult = await sendLeadNotification(lead, input.refundRange, input.yearAnswers);
     if (!emailResult.success) {
       console.error('[submitLead] email failed:', emailResult);
     }

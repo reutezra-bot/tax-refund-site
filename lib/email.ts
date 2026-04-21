@@ -1,6 +1,11 @@
 import { Resend } from 'resend';
 import type { Lead } from '@/types/lead';
-import type { RefundRange, TaxYearUnit, SpecialPeriod } from '@/types/case';
+import type { RefundRange, YearAnswers, SpecialPeriod } from '@/types/case';
+
+interface YearAnswerEntry {
+  year: number;
+  answers: YearAnswers | null;
+}
 
 const INTERNAL_EMAIL = process.env.INTERNAL_EMAIL ?? 'reut.prodify@gmail.com';
 
@@ -18,7 +23,7 @@ const REFUND_RANGE_LABELS: Record<RefundRange, string> = {
 export async function sendLeadNotification(
   lead: Lead,
   refundRange?: RefundRange,
-  years?: TaxYearUnit[],
+  years?: YearAnswerEntry[],
 ): Promise<{ success: boolean; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -60,7 +65,7 @@ const SPECIAL_PERIOD_LABELS: Record<SpecialPeriod, string> = {
   maternityLeave: 'חופשת לידה',
 };
 
-function buildYearsHtml(years: TaxYearUnit[]): string {
+function buildYearsHtml(years: YearAnswerEntry[]): string {
   const rows = years
     .filter((u) => u.answers)
     .sort((a, b) => b.year - a.year)
@@ -69,7 +74,7 @@ function buildYearsHtml(years: TaxYearUnit[]): string {
       const items = [
         a.multipleEmployers && 'מספר מעסיקים',
         a.partialYear && 'שנה חלקית',
-        a.specialPeriods.length > 0 && a.specialPeriods.map((p) => SPECIAL_PERIOD_LABELS[p]).join(', '),
+        a.specialPeriods.length > 0 && a.specialPeriods.map((p: SpecialPeriod) => SPECIAL_PERIOD_LABELS[p]).join(', '),
         a.hasLifeInsurance && `ביטוח חיים${a.lifeInsuranceMonthlyEstimate ? ` (~${a.lifeInsuranceMonthlyEstimate.toLocaleString('he-IL')} ₪/חודש)` : ''}`,
         a.hasDonations && `תרומות${a.donationsYearlyEstimate ? ` (~${a.donationsYearlyEstimate.toLocaleString('he-IL')} ₪/שנה)` : ''}`,
         a.selfEmployedOrForeignIncome && 'הכנסה עצמאית / ממקור זר',
@@ -96,7 +101,7 @@ function buildYearsHtml(years: TaxYearUnit[]): string {
   </table>` : '';
 }
 
-function buildEmailHtml(lead: Lead, refundRange?: RefundRange, years?: TaxYearUnit[]): string {
+function buildEmailHtml(lead: Lead, refundRange?: RefundRange, years?: YearAnswerEntry[]): string {
   const resultLabel =
     refundRange
       ? REFUND_RANGE_LABELS[refundRange]
