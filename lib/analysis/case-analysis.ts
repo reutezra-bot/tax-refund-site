@@ -147,12 +147,21 @@ export function calculateCaseResult(years: TaxYearUnit[]): CaseResult {
   const allMissing = yearlySummaries.flatMap((r) => r.missingData);
   const missingData = [...new Set(allMissing)];
 
+  // ── Aggregate ILS estimate across all years ───────────────────────────────
+  const allEstimates = yearlySummaries
+    .map((r) => r.estimatedRefundPotential ?? 0)
+    .filter((v) => v > 0);
+  const estimatedRefundAmountILS = allEstimates.length > 0
+    ? allEstimates.reduce((sum, v) => sum + v, 0)
+    : undefined;
+
   const sourceDocumentIds = years.flatMap((u) => u.documents.map((d) => d.id));
 
   return {
     type,
     confidenceLevel,
     refundRange,
+    estimatedRefundAmountILS,
     yearlySummaries,
     crossYearWarnings,
     overallReasons,

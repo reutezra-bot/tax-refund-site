@@ -57,11 +57,9 @@ export default function ContactForm() {
       email,
       notes,
       initialResult: caseData.result.type,
-      refundRange: caseData.result.refundRange,
+      result: caseData.result,
       uploadedDocuments: allDocs,
       yearAnswers,
-      overallReasons: caseData.result.overallReasons,
-      missingData: caseData.result.missingData,
     });
     setLoading(false);
 

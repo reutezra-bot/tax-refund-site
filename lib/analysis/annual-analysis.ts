@@ -93,6 +93,22 @@ export function calculateAnnualResult(unit: TaxYearUnit): AnnualResult {
       }
     }
 
+    if (answers.specialPeriods.includes('unpaidLeave')) {
+      if (!answers.unpaidLeaveMonths) {
+        missingData.push(`מספר חודשי חל"ת בשנת ${year}`);
+      }
+    }
+    if (answers.specialPeriods.includes('reserveDuty')) {
+      if (!answers.reserveDutyDays) {
+        missingData.push(`מספר ימי מילואים בשנת ${year}`);
+      }
+    }
+    if (answers.specialPeriods.includes('maternityLeave')) {
+      if (!answers.maternityLeaveMonths) {
+        missingData.push(`מספר חודשי חופשת לידה בשנת ${year}`);
+      }
+    }
+
     if (answers.hasLifeInsurance === true) {
       hasPositiveQuestionnaireSignal = true;
       const monthly = answers.lifeInsuranceMonthlyEstimate ?? 0;
@@ -286,15 +302,32 @@ export function calculateAnnualResult(unit: TaxYearUnit): AnnualResult {
     type = 'no_clear_indication';
   }
 
+  // ── Questionnaire-based ILS credit estimate ───────────────────────────────
+  // Donations only: section 46 of the Income Tax Ordinance grants a 35% credit
+  // on donations ≥ ₪180 to a recognised public institution (מוסד ציבורי מאושר).
+  //
+  // Life insurance is intentionally excluded: section 32(13) prohibits deduction
+  // of premiums for personal life insurance. Section 47 applies only to premiums
+  // embedded inside pension products, which would already appear on Form 106.
+  // A standalone "ביטוח חיים פרטי" answer is a qualitative review signal only.
+  let questionnaireEstimateILS = 0;
+
+  if (answers) {
+    const donationYearly = answers.donationsYearlyEstimate ?? 0;
+    if (answers.hasDonations === true && donationYearly >= 180) {
+      questionnaireEstimateILS += Math.round(donationYearly * 0.35);
+    }
+  }
+
   // ── Refund range ──────────────────────────────────────────────────────────
   let refundRange: RefundRange | undefined;
   let estimatedRefundPotential: number | undefined;
 
   if (canBePositive && type === 'potential_refund') {
-    estimatedRefundPotential = totalRefundPotential;
+    estimatedRefundPotential = totalRefundPotential + questionnaireEstimateILS;
 
     if (confidenceLevel !== 'low') {
-      let anchorPotential = totalRefundPotential;
+      let anchorPotential = totalRefundPotential + questionnaireEstimateILS;
       if (confidenceLevel === 'medium') anchorPotential = Math.round(anchorPotential * 0.75);
 
       if (anchorPotential >= 6000)      refundRange = 'above_6k';
@@ -306,6 +339,9 @@ export function calculateAnnualResult(unit: TaxYearUnit): AnnualResult {
         warnings.push('האומדן עוּגן עקב הפרשים לשנים קודמות — הסכום האמיתי עשוי להיות שונה');
       }
     }
+  } else if (questionnaireEstimateILS > 0) {
+    // No form math, but we have questionnaire-based credit estimates
+    estimatedRefundPotential = questionnaireEstimateILS;
   }
 
   // ── Deduplicate reasons ───────────────────────────────────────────────────

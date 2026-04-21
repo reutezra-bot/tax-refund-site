@@ -85,6 +85,15 @@ export default function YearQuestionnaire({ year, initial, onSubmit, loading }: 
   const [noneSelected, setNoneSelected] = useState(
     initial ? initial.specialPeriods.length === 0 && initial.multipleEmployers !== null : false,
   );
+  const [unpaidLeaveMonths, setUnpaidLeaveMonths] = useState(
+    String(initial?.unpaidLeaveMonths ?? ''),
+  );
+  const [reserveDutyDays, setReserveDutyDays] = useState(
+    String(initial?.reserveDutyDays ?? ''),
+  );
+  const [maternityLeaveMonths, setMaternityLeaveMonths] = useState(
+    String(initial?.maternityLeaveMonths ?? ''),
+  );
   const [hasLifeInsurance, setHasLifeInsurance] = useState<boolean | null>(
     initial?.hasLifeInsurance ?? null,
   );
@@ -120,6 +129,9 @@ export default function YearQuestionnaire({ year, initial, onSubmit, loading }: 
       multipleEmployers,
       partialYear,
       specialPeriods,
+      unpaidLeaveMonths: specialPeriods.includes('unpaidLeave') && unpaidLeaveMonths ? Number(unpaidLeaveMonths) : undefined,
+      reserveDutyDays: specialPeriods.includes('reserveDuty') && reserveDutyDays ? Number(reserveDutyDays) : undefined,
+      maternityLeaveMonths: specialPeriods.includes('maternityLeave') && maternityLeaveMonths ? Number(maternityLeaveMonths) : undefined,
       hasLifeInsurance,
       lifeInsuranceMonthlyEstimate: lifeInsuranceMonthly ? Number(lifeInsuranceMonthly) : undefined,
       hasDonations,
@@ -184,6 +196,56 @@ export default function YearQuestionnaire({ year, initial, onSubmit, loading }: 
             ללא אחד מאלה
           </button>
         </div>
+
+        {/* Follow-up detail inputs */}
+        {specialPeriods.includes('unpaidLeave') && (
+          <div className="pt-3 border-t border-slate-100">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              כמה חודשי חל&quot;ת היו? <span className="text-slate-400">(בערך)</span>
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={12}
+              value={unpaidLeaveMonths}
+              onChange={(e) => setUnpaidLeaveMonths(e.target.value)}
+              placeholder="לדוגמה: 3"
+              className="w-full sm:w-32 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+            />
+          </div>
+        )}
+        {specialPeriods.includes('reserveDuty') && (
+          <div className="pt-3 border-t border-slate-100">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              כמה ימי מילואים? <span className="text-slate-400">(בערך)</span>
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={365}
+              value={reserveDutyDays}
+              onChange={(e) => setReserveDutyDays(e.target.value)}
+              placeholder="לדוגמה: 21"
+              className="w-full sm:w-32 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+            />
+          </div>
+        )}
+        {specialPeriods.includes('maternityLeave') && (
+          <div className="pt-3 border-t border-slate-100">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              כמה חודשי חופשת לידה? <span className="text-slate-400">(בערך)</span>
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={12}
+              value={maternityLeaveMonths}
+              onChange={(e) => setMaternityLeaveMonths(e.target.value)}
+              placeholder="לדוגמה: 4"
+              className="w-full sm:w-32 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+            />
+          </div>
+        )}
       </QuestionBlock>
 
       {/* Q4 */}

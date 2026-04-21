@@ -9,6 +9,9 @@ export interface YearAnswers {
   multipleEmployers: boolean | null;
   partialYear: boolean | null;
   specialPeriods: SpecialPeriod[];
+  unpaidLeaveMonths?: number;
+  reserveDutyDays?: number;
+  maternityLeaveMonths?: number;
   hasLifeInsurance: boolean | null;
   lifeInsuranceMonthlyEstimate?: number;
   hasDonations: boolean | null;
@@ -87,6 +90,8 @@ export interface CaseResult {
   confidenceLevel: ConfidenceLevel;
   /** Only set when overall confidence is medium or high. */
   refundRange?: RefundRange;
+  /** Aggregated ILS estimate from form math + questionnaire credits. */
+  estimatedRefundAmountILS?: number;
   yearlySummaries: AnnualResult[];
   crossYearWarnings: string[];
   overallReasons: string[];
