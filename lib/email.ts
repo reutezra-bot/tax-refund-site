@@ -1,6 +1,6 @@
 import { Resend } from 'resend';
 import type { Lead } from '@/types/lead';
-import type { RefundRange } from '@/types/case';
+import type { RefundRange, TaxYearUnit, SpecialPeriod } from '@/types/case';
 
 const INTERNAL_EMAIL = process.env.INTERNAL_EMAIL ?? 'reut.prodify@gmail.com';
 
@@ -18,6 +18,7 @@ const REFUND_RANGE_LABELS: Record<RefundRange, string> = {
 export async function sendLeadNotification(
   lead: Lead,
   refundRange?: RefundRange,
+  years?: TaxYearUnit[],
 ): Promise<{ success: boolean; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -34,14 +35,12 @@ export async function sendLeadNotification(
       content: Buffer.from(doc.fileBase64!, 'base64'),
     }));
 
-  const debugSubject = `ליד חדש — ${lead.fullName} | בדיקת החזר מס [קבצים: ${attachments.length}/${(lead.uploadedDocuments ?? []).length}]`;
-
   const { error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: INTERNAL_EMAIL,
     replyTo: lead.email,
-    subject: debugSubject,
-    html: buildEmailHtml(lead, refundRange),
+    subject: `ליד חדש — ${lead.fullName} | בדיקת החזר מס`,
+    html: buildEmailHtml(lead, refundRange, years),
     attachments,
   });
 
@@ -54,7 +53,50 @@ export async function sendLeadNotification(
   return { success: true };
 }
 
-function buildEmailHtml(lead: Lead, refundRange?: RefundRange): string {
+const SPECIAL_PERIOD_LABELS: Record<SpecialPeriod, string> = {
+  unemployment: 'דמי אבטלה',
+  unpaidLeave: 'חל"ת',
+  reserveDuty: 'מילואים',
+  maternityLeave: 'חופשת לידה',
+};
+
+function buildYearsHtml(years: TaxYearUnit[]): string {
+  const rows = years
+    .filter((u) => u.answers)
+    .sort((a, b) => b.year - a.year)
+    .map((u) => {
+      const a = u.answers!;
+      const items = [
+        a.multipleEmployers && 'מספר מעסיקים',
+        a.partialYear && 'שנה חלקית',
+        a.specialPeriods.length > 0 && a.specialPeriods.map((p) => SPECIAL_PERIOD_LABELS[p]).join(', '),
+        a.hasLifeInsurance && `ביטוח חיים${a.lifeInsuranceMonthlyEstimate ? ` (~${a.lifeInsuranceMonthlyEstimate.toLocaleString('he-IL')} ₪/חודש)` : ''}`,
+        a.hasDonations && `תרומות${a.donationsYearlyEstimate ? ` (~${a.donationsYearlyEstimate.toLocaleString('he-IL')} ₪/שנה)` : ''}`,
+        a.selfEmployedOrForeignIncome && 'הכנסה עצמאית / ממקור זר',
+      ].filter(Boolean).join(' | ') || 'ללא מאפיינים מיוחדים';
+
+      return `
+        <tr style="border-bottom:1px solid #e5e7eb">
+          <td style="padding:6px 8px;font-weight:600;white-space:nowrap">שנת מס ${u.year}</td>
+          <td style="padding:6px 8px;color:#374151">${items}</td>
+        </tr>`;
+    })
+    .join('');
+
+  return rows ? `
+  <h3 style="color:#374151;margin-bottom:8px">תשובות השאלון לפי שנה</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:24px">
+    <thead>
+      <tr style="background:#f3f4f6">
+        <th style="padding:6px 8px;text-align:right;font-weight:600">שנה</th>
+        <th style="padding:6px 8px;text-align:right;font-weight:600">מאפיינים</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>` : '';
+}
+
+function buildEmailHtml(lead: Lead, refundRange?: RefundRange, years?: TaxYearUnit[]): string {
   const resultLabel =
     refundRange
       ? REFUND_RANGE_LABELS[refundRange]
@@ -117,6 +159,8 @@ function buildEmailHtml(lead: Lead, refundRange?: RefundRange): string {
       <td style="padding:8px">${lead.notes}</td>
     </tr>` : ''}
   </table>
+
+  ${years && years.length > 0 ? buildYearsHtml(years) : ''}
 
   ${docsRows ? `
   <h3 style="color:#374151;margin-bottom:8px">מסמכים שהועלו</h3>

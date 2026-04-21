@@ -57,6 +57,7 @@ export default function ContactForm() {
       initialResult: caseData.result.type,
       refundRange: caseData.result.refundRange,
       uploadedDocuments: allDocs,
+      years: caseData.years,
     });
     setLoading(false);
 
