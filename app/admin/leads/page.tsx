@@ -9,7 +9,7 @@ export default function AdminLeadsPage() {
   const stats = {
     total: leads.length,
     new: leads.filter((l) => l.status === 'חדש').length,
-    positive: leads.filter((l) => l.initialResult === 'positive').length,
+    positive: leads.filter((l) => l.initialResult === 'potential_refund').length,
     pending: leads.filter((l) => l.status === 'ממתין לבדיקה').length,
   };
 
