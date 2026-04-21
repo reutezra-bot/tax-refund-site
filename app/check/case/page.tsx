@@ -33,12 +33,12 @@ export default function CasePage() {
     router.push(`/check/case/${selectedNewYear}/upload`);
   };
 
-  // A year is "ready" when it has at least one non-extracting document AND answers.
+  // A year is "ready" when it has answers. A document is optional — the analysis
+  // engine handles questionnaire-only input and returns needs_review if signals exist.
   const isYearReady = (year: number) => {
     const unit = caseData.years.find((u) => u.year === year);
     if (!unit) return false;
-    const hasDoc = unit.documents.some((d) => !d.extracting);
-    return hasDoc && unit.answers !== null;
+    return unit.answers !== null;
   };
 
   const readyYears = caseData.years.filter((u) => isYearReady(u.year));
