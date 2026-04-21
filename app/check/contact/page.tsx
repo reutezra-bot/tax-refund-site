@@ -13,15 +13,15 @@ import WhatsAppButton from '@/components/ui/WhatsAppButton';
 const STEP_LABELS = ['מבוא', 'תיק מס', 'תוצאה', 'פרטי קשר'];
 
 const resultSummary = {
-  positive: {
+  potential_refund: {
     label: 'נמצאה אינדיקציה חיובית',
     color: 'text-emerald-700 bg-emerald-50 border-emerald-200',
   },
-  review: {
+  needs_review: {
     label: 'נדרשת בדיקה נוספת',
     color: 'text-amber-700 bg-amber-50 border-amber-200',
   },
-  insufficient: {
+  no_clear_indication: {
     label: 'לא זוהתה אינדיקציה מספקת',
     color: 'text-slate-600 bg-slate-50 border-slate-200',
   },
