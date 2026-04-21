@@ -13,15 +13,15 @@ const statusColors: Record<LeadStatus, string> = {
 };
 
 const resultColors: Record<InitialResultType, string> = {
-  positive: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  review: 'bg-amber-50 text-amber-700 border-amber-200',
-  insufficient: 'bg-slate-50 text-slate-500 border-slate-200',
+  potential_refund: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  needs_review: 'bg-amber-50 text-amber-700 border-amber-200',
+  no_clear_indication: 'bg-slate-50 text-slate-500 border-slate-200',
 };
 
 const resultLabels: Record<InitialResultType, string> = {
-  positive: 'אינדיקציה חיובית',
-  review: 'נדרשת בדיקה',
-  insufficient: 'לא זוהתה אינדיקציה',
+  potential_refund: 'אינדיקציה חיובית',
+  needs_review: 'נדרשת בדיקה',
+  no_clear_indication: 'לא זוהתה אינדיקציה',
 };
 
 interface StatusBadgeProps {
