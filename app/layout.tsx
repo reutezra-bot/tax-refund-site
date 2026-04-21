@@ -8,15 +8,11 @@ const heebo = Heebo({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
-  title: 'בדיקת זכאות להחזר מס | בדיקה ראשונית חינם',
+export const metadata = {
+  title: 'בדיקת זכאות להחזר מס אונליין | החזר מס לשכירים',
   description:
-    'בדקו תוך כמה דקות אם ייתכן שמגיע לכם החזר מס. מעלים טופס 106, עונים על כמה שאלות קצרות, ומקבלים תשובה ראשונית.',
-  openGraph: {
-    locale: 'he_IL',
-    type: 'website',
-  },
-};
+    'בדיקה ראשונית מהירה להחזר מס לשכירים. בודקים זכאות לפי טופס 106 ונתונים כמו תרומות, חל"ת, מילואים, אבטלה ויותר ממעסיק אחד.',
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
