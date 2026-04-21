@@ -20,6 +20,8 @@ interface SubmitLeadInput {
   refundRange?: RefundRange;
   uploadedDocuments: UploadedDocument[];
   yearAnswers: YearAnswerEntry[];
+  overallReasons?: string[];
+  missingData?: string[];
 }
 
 export async function submitLead(
@@ -35,7 +37,14 @@ export async function submitLead(
       uploadedDocuments: input.uploadedDocuments,
     });
 
-    const emailResult = await sendLeadNotification(lead, input.refundRange, input.yearAnswers);
+    const emailResult = await sendLeadNotification(
+      lead,
+      input.refundRange,
+      input.yearAnswers,
+      input.overallReasons,
+      input.missingData,
+    );
+
     if (!emailResult.success) {
       console.error('[submitLead] email failed:', emailResult);
     }

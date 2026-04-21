@@ -9,7 +9,7 @@ export type LeadStatus =
   | 'לא רלוונטי'
   | 'טופל';
 
-export type InitialResultType = 'positive' | 'review' | 'insufficient';
+export type InitialResultType = 'potential_refund' | 'needs_review' | 'no_clear_indication';
 
 export interface Lead {
   id: string;

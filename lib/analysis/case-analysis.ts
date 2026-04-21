@@ -1,14 +1,3 @@
-/**
- * Cross-year case analysis.
- *
- * Combines per-year AnnualResults into a single CaseResult.
- * Applies cross-year logic:
- *  - Prior-year difference chains (one year's retroactive diff affects another)
- *  - Whether multiple positive years strengthen the conclusion
- *  - Whether any year forces manual review
- *  - Aggregate refund potential calculation
- */
-
 import type {
   TaxYearUnit,
   AnnualResult,
@@ -19,38 +8,33 @@ import type {
 } from '@/types/case';
 import { calculateAnnualResult } from './annual-analysis';
 
-// ── Main function ─────────────────────────────────────────────────────────────
-
 export function calculateCaseResult(years: TaxYearUnit[]): CaseResult {
   if (years.length === 0) {
     return {
-      type: 'insufficient',
+      type: 'no_clear_indication',
       confidenceLevel: 'low',
       yearlySummaries: [],
       crossYearWarnings: [],
       overallReasons: ['לא נוספו שנות מס לתיק'],
       manualReviewRecommended: false,
+      missingData: ['טופס 106'],
       sourceDocumentIds: [],
     };
   }
 
-  // ── Compute per-year results ──────────────────────────────────────────────
   const yearlySummaries: AnnualResult[] = years.map(calculateAnnualResult);
 
-  // ── Cross-year analysis ───────────────────────────────────────────────────
   const crossYearWarnings: string[] = [];
   const overallReasons: string[] = [];
 
-  const sortedYears = [...years].sort((a, b) => a.year - b.year); // ascending for timeline analysis
+  const sortedYears = [...years].sort((a, b) => a.year - b.year);
+  void sortedYears;
 
   // Detect prior-year difference chains
   const yearsWithPriorDiffs = yearlySummaries
     .filter((r) => r.priorYearDifferencesDetected)
     .map((r) => r.year);
 
-  // For each year with prior-year diffs: check whether the referenced prior year
-  // also has a Form 106 uploaded. If yes — both are in the calculation (informational note).
-  // If no — flag as a data gap that may affect accuracy.
   for (const yearWithDiff of yearsWithPriorDiffs) {
     const priorYear = yearWithDiff - 1;
     const priorUnit = years.find((u) => u.year === priorYear);
@@ -67,9 +51,8 @@ export function calculateCaseResult(years: TaxYearUnit[]): CaseResult {
     }
   }
 
-  // Multiple years strengthen the case
-  const positiveYears = yearlySummaries.filter((r) => r.type === 'positive');
-  const reviewYears = yearlySummaries.filter((r) => r.type === 'review');
+  const positiveYears = yearlySummaries.filter((r) => r.type === 'potential_refund');
+  const reviewYears = yearlySummaries.filter((r) => r.type === 'needs_review');
   const insufficientDataYears = yearlySummaries.filter((r) => r.type === 'insufficient_data');
 
   if (positiveYears.length > 1) {
@@ -91,11 +74,13 @@ export function calculateCaseResult(years: TaxYearUnit[]): CaseResult {
   }
   if (insufficientDataYears.length > 0) {
     crossYearWarnings.push(
-      `נתוני טופס 106 לא חולצו בצורה מספקת לשנות: ${insufficientDataYears.map((r) => r.year).join(', ')} — שנות אלה לא נכללות בחישוב הכמותי`,
+      `נתוני טופס 106 לא חולצו בצורה מספקת לשנות: ${insufficientDataYears.map((r) => r.year).join(', ')}`,
     );
   }
   if (years.length > 1) {
-    overallReasons.push(`הבדיקה מכסה ${years.length} שנות מס: ${years.map((u) => u.year).sort((a, b) => b - a).join(', ')}`);
+    overallReasons.push(
+      `הבדיקה מכסה ${years.length} שנות מס: ${years.map((u) => u.year).sort((a, b) => b - a).join(', ')}`,
+    );
   }
 
   // ── Overall result type ───────────────────────────────────────────────────
@@ -103,30 +88,23 @@ export function calculateCaseResult(years: TaxYearUnit[]): CaseResult {
 
   let type: CaseResultType;
   if (positiveYears.length > 0 && positiveYears.some((r) => r.confidenceLevel !== 'low')) {
-    type = 'positive';
-  } else if (
-    reviewYears.length > 0 ||
-    positiveYears.length > 0 ||
-    manualReviewRecommended
-  ) {
-    type = 'review';
+    type = 'potential_refund';
+  } else if (reviewYears.length > 0 || positiveYears.length > 0 || manualReviewRecommended) {
+    type = 'needs_review';
   } else {
-    type = 'insufficient';
+    type = 'no_clear_indication';
   }
 
   // ── Overall confidence ────────────────────────────────────────────────────
   const confOrder: Record<ConfidenceLevel, number> = { high: 3, medium: 2, low: 1 };
 
-  // Use the confidence of the best positive year, or lowest if no positive years
   let confidenceLevel: ConfidenceLevel;
   if (positiveYears.length > 0) {
-    // Best confidence among positive years
     const best = positiveYears.reduce((a, b) =>
       confOrder[a.confidenceLevel] >= confOrder[b.confidenceLevel] ? a : b,
     );
     confidenceLevel = best.confidenceLevel;
   } else if (reviewYears.length > 0) {
-    // Lowest confidence among review years (conservative)
     const worst = reviewYears.reduce((a, b) =>
       confOrder[a.confidenceLevel] <= confOrder[b.confidenceLevel] ? a : b,
     );
@@ -135,15 +113,13 @@ export function calculateCaseResult(years: TaxYearUnit[]): CaseResult {
     confidenceLevel = 'low';
   }
 
-  // Cross-year complexity always prevents 'high' confidence
   if (yearsWithPriorDiffs.length > 0 && confidenceLevel === 'high') {
     confidenceLevel = 'medium';
   }
 
   // ── Aggregate refund range ────────────────────────────────────────────────
   let refundRange: RefundRange | undefined;
-  if (type !== 'insufficient' && confidenceLevel !== 'low') {
-    // Sum estimated potentials from years where we have valid numeric data
+  if (type === 'potential_refund' && confidenceLevel !== 'low') {
     const yearsWithPotential = yearlySummaries.filter(
       (r) => r.estimatedRefundPotential !== undefined && r.type !== 'insufficient_data',
     );
@@ -156,22 +132,21 @@ export function calculateCaseResult(years: TaxYearUnit[]): CaseResult {
       if (confidenceLevel === 'medium') totalPotential = Math.round(totalPotential * 0.75);
 
       if (totalPotential > 0) {
-        if (totalPotential >= 6000)       refundRange = 'above_6k';
-        else if (totalPotential >= 2000)  refundRange = '2k_to_6k';
-        else                              refundRange = 'up_to_2k';
+        if (totalPotential >= 6000)      refundRange = 'above_6k';
+        else if (totalPotential >= 2000) refundRange = '2k_to_6k';
+        else                             refundRange = 'up_to_2k';
       }
-      // If totalPotential <= 0 despite numeric data: no range — form says no overpayment
-    }
-    // No numeric data from any year: no range.
-    // Questionnaire signals alone never produce a refund range estimate.
 
-    // Cap: cross-year prior diffs + medium confidence → cap at 2k_to_6k
-    if (yearsWithPriorDiffs.length > 0 && refundRange === 'above_6k') {
-      refundRange = '2k_to_6k';
+      if (yearsWithPriorDiffs.length > 0 && refundRange === 'above_6k') {
+        refundRange = '2k_to_6k';
+      }
     }
   }
 
-  // ── Source document IDs ───────────────────────────────────────────────────
+  // ── Aggregate missingData across all years (deduplicated) ─────────────────
+  const allMissing = yearlySummaries.flatMap((r) => r.missingData);
+  const missingData = [...new Set(allMissing)];
+
   const sourceDocumentIds = years.flatMap((u) => u.documents.map((d) => d.id));
 
   return {
@@ -182,6 +157,7 @@ export function calculateCaseResult(years: TaxYearUnit[]): CaseResult {
     crossYearWarnings,
     overallReasons,
     manualReviewRecommended,
+    missingData,
     sourceDocumentIds,
   };
 }

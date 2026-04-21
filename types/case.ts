@@ -43,8 +43,8 @@ export const CONFIDENCE_LABELS: Record<ConfidenceLevel, string> = {
   low: 'נמוכה',
 };
 
-/** Result type for a single tax year. insufficient_data = not enough to analyze. */
-export type AnnualResultType = 'positive' | 'review' | 'insufficient' | 'insufficient_data';
+/** Result type for a single tax year. */
+export type AnnualResultType = 'potential_refund' | 'needs_review' | 'no_clear_indication' | 'insufficient_data';
 
 /** Dev-only proof of which data source drove the result. Populated only in development. */
 export interface ResultSourceInfo {
@@ -73,13 +73,14 @@ export interface AnnualResult {
   warnings: string[];
   manualReviewRecommended: boolean;
   priorYearDifferencesDetected: boolean;
+  missingData: string[];
   /** Dev-only: proof of result source attribution. Not present in production. */
   _devInfo?: ResultSourceInfo;
 }
 
 // ── Case-level result ─────────────────────────────────────────────────────────
 
-export type CaseResultType = 'positive' | 'review' | 'insufficient';
+export type CaseResultType = 'potential_refund' | 'needs_review' | 'no_clear_indication';
 
 export interface CaseResult {
   type: CaseResultType;
@@ -90,6 +91,7 @@ export interface CaseResult {
   crossYearWarnings: string[];
   overallReasons: string[];
   manualReviewRecommended: boolean;
+  missingData: string[];
   /** All source document IDs — used for staleness detection. */
   sourceDocumentIds: string[];
 }
