@@ -1,6 +1,5 @@
 import Link from 'next/link';
-import Image from 'next/image';
-import { LOGO_PATH, whatsappHref, BRAND_NAME_EN } from '@/lib/constants';
+import { whatsappHref } from '@/lib/constants';
 
 export default function Footer() {
   return (
@@ -9,15 +8,6 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
           {/* Brand */}
           <div>
-            <Link href="/" className="inline-block mb-4">
-              <Image
-                src={LOGO_PATH}
-                alt={BRAND_NAME_EN}
-                width={140}
-                height={42}
-                className="h-9 w-auto object-contain brightness-0 invert opacity-80"
-              />
-            </Link>
             <p className="text-sm text-slate-400 leading-relaxed">
               בדיקת זכאות ראשונית להחזר מס לשכירים. מהיר, פשוט, ללא התחייבות.
             </p>
@@ -69,7 +59,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-slate-700 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} {BRAND_NAME_EN}. כל הזכויות שמורות.</p>
+          <p>© {new Date().getFullYear()}. כל הזכויות שמורות.</p>
           <p>שירות זה מספק אינדיקציה ראשונית בלבד ואינו מהווה ייעוץ מס.</p>
         </div>
       </div>
